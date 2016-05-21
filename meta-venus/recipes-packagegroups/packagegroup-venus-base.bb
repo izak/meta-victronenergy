@@ -84,3 +84,7 @@ RDEPENDS_${PN}_append_bpp3 += "\
 	mtd-utils \
 	mtd-utils-ubifs \
 "
+
+RDEPENDS_${PN}_append_beaglebone += "\
+	crda \
+"
