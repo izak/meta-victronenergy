@@ -22,6 +22,14 @@ DEPENDS_append_bpp3 += "\
 	qtserialport \
 "
 
+# Added at request of Alp: redis, python-pip, minicom, python-paho-mqtt
+DEPENDS_append_beaglebone += "\
+	redis \
+	python-pip \
+	minicom \
+	python-paho-mqtt\
+"
+
 RDEPENDS_${PN} += "\
 	bash \
 	bsdiff \
