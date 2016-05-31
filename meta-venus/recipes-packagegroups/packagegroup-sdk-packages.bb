@@ -13,6 +13,6 @@ RDEPENDS_packagegroup-sdk-packages += " \
 	packagegroup-core-standalone-sdk-target \
 	packagegroup-venus-base-dev \
 	qt4-embedded-mkspecs \
-	u-boot-env-tools-staticdev \
 "
 
+#	u-boot-env-tools-staticdev \
