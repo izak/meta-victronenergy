@@ -96,6 +96,5 @@ RDEPENDS_${PN}_append_bpp3 += "\
 RDEPENDS_${PN}_append_beaglebone += "\
 	crda \
 	ofono \
-	modemmanager \
 	gdbserver \
 "
