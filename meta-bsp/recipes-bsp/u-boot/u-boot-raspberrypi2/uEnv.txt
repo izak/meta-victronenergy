@@ -1,14 +1,15 @@
+machid=0x00000c42
+bootdelay=5
 bootpart=0:1
-bootdir=/boot
 bootfile=uImage
 console=ttyAMA0,115200n8
-fdtaddr=0x88000000
 fdtfile=bcm2709-rpi-2-b.dtb
-loadaddr=0x82000000
+kernel_addr_r=0x01000000
+fdt_addr_r=0x02000000
 mmcroot=/dev/mmcblk0p2 ro
 mmcrootfstype=ext3 rootwait
 optargs=consoleblank=0
 mmcargs=setenv bootargs console=${console} ${optargs} root=${mmcroot} rootfstype=${mmcrootfstype}
-loadfdt=load mmc ${bootpart} ${fdtaddr} ${bootdir}/${fdtfile}
-loadimage=load mmc ${bootpart} ${loadaddr} ${bootdir}/${bootfile}
-uenvcmd=if run loadfdt; then echo Loaded ${fdtfile}; if run loadimage; then run mmcargs; bootm ${loadaddr} - ${fdtaddr}; fi; fi;
+loadfdt=fatload mmc ${bootpart} ${fdt_addr_r} ${fdtfile}
+loadimage=fatload mmc ${bootpart} ${kernel_addr_r} ${bootfile}
+bootcmd=if run loadfdt; then echo Loaded ${fdtfile}; if run loadimage; then run mmcargs; bootm ${kernel_addr_r} - ${fdt_addr_r}; fi; fi;
