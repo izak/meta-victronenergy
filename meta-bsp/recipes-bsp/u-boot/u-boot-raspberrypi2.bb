@@ -27,4 +27,5 @@ SRC_URI[sha256sum] = "37f7ffc75ec3c38ea3125350cc606d3ceac071ab68811c9fb0cfc25d70
 # load u-boot.
 do_deploy_append() {
     install ${WORKDIR}/config.txt ${DEPLOYDIR}/config.txt
+    ${S}/tools/mkenvimage -s 16384 -o ${DEPLOYDIR}/uboot.env ${WORKDIR}/uEnv.txt
 }
