@@ -1,5 +1,5 @@
 machid=0x00000c42
-bootdelay=5
+bootdelay=3
 bootpart=0:1
 bootfile=uImage
 console=ttyAMA0,115200n8
@@ -8,7 +8,7 @@ kernel_addr_r=0x01000000
 fdt_addr_r=0x02000000
 mmcroot=/dev/mmcblk0p2 ro
 mmcrootfstype=ext4 rootwait
-optargs=consoleblank=0
+optargs=consoleblank=0 dwc_otg.lpm_enable=0 elevator=deadline
 mmcargs=setenv bootargs "console=tty0 console=${console} ${optargs} root=${mmcroot} rootfstype=${mmcrootfstype}"
 loadfdt=fatload mmc ${bootpart} ${fdt_addr_r} ${fdtfile}
 loadimage=fatload mmc ${bootpart} ${kernel_addr_r} ${bootfile}
