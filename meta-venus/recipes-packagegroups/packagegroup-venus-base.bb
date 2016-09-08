@@ -95,3 +95,7 @@ RDEPENDS_${PN} += "\
 	websockify-c \
 	zip \
 "
+
+RDEPENDS_${PN}_append_raspberrypi2 += "\
+       crda \
+"
