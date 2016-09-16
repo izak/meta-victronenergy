@@ -1,7 +1,7 @@
 require ${COREBASE}/meta/recipes-bsp/u-boot/u-boot.inc
 
 LICENSE = "GPLv2+"
-LIC_FILES_CHKSUM = "file://Licenses/README;md5=0507cd7da8e7ad6d6701926ec9b84c95"
+LIC_FILES_CHKSUM = "file://Licenses/README;md5=a2c678cfd4a4d97135585cad908541c6"
 
 UBOOT_LOCALVERSION = "-venus"
 UBOOT_ENV = "uEnv"
@@ -14,9 +14,9 @@ SRC_URI += " \
 # This revision corresponds to the tag "v2015.07"
 # We use the revision in order to avoid having to fetch it from the
 # repo during parse
-SRCREV = "33711bdd4a4dce942fb5ae85a68899a8357bdd94"
+SRCREV = "9dd1d0aa4e086bc8a5eaf19a67825c3323c41c5a"
 
-PV = "v2015.07+git${SRCPV}"
+PV = "v2016.09.11+git${SRCPV}"
 
 EXTRA_OEMAKE_append = " KCFLAGS=-fgnu89-inline"
 
