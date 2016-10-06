@@ -7,20 +7,22 @@ inherit image_types
 #
 #    0                      -> IMAGE_ROOTFS_ALIGNMENT         - reserved for other data
 #    IMAGE_ROOTFS_ALIGNMENT -> BOOT_SPACE                     - bootloader and kernel
-#    BOOT_SPACE             -> SDIMG_SIZE                     - rootfs
+#    BOOT_SPACE             -> ROOTFS_SIZE                    - rootfs
+#    ROOTFS_SIZE            -> SDIMG_SIZE                     - data
 #
 
-#                                                     Default Free space = 1.3x
-#                                                     Use IMAGE_OVERHEAD_FACTOR to add more space
-#                                                     <--------->
-#            4MiB              40MiB           SDIMG_ROOTFS
-# <-----------------------> <----------> <---------------------->
-#  ------------------------ ------------ ------------------------
-# | IMAGE_ROOTFS_ALIGNMENT | BOOT_SPACE | ROOTFS_SIZE            |
-#  ------------------------ ------------ ------------------------
-# ^                        ^            ^                        ^
-# |                        |            |                        |
-# 0                      4MiB     4MiB + 40MiB       4MiB + 40Mib + SDIMG_ROOTFS
+# Default Free space = 1.3x
+# Use IMAGE_OVERHEAD_FACTOR to add more space
+
+#            4MiB              40MiB      SDIMG_ROOTFS  SDIMG_ROOTFS  SDIMG_DATA
+# <-----------------------> <----------> <-----------> <-----------> <---------->
+#  ------------------------ ------------ ------------- ------------- ------------
+# | IMAGE_ROOTFS_ALIGNMENT | BOOT_SPACE | ROOTFS_SIZE | ROOTFS_SIZE | DATA_SPACE |
+#  ------------------------ ------------ ------------- ------------- ------------
+# ^                        ^            ^             ^             ^
+# |                        |            |             |             |
+# 0                      4MiB     4MiB + 40MiB     44Mib +       44Mib +
+#                                               SDIMG_ROOTFS  2*SDIMG_ROOTFS
 
 # This image depends on the rootfs image
 IMAGE_TYPEDEP_rpi-sdimg = "${SDIMG_ROOTFS_TYPE}"
@@ -37,6 +39,9 @@ BOOTDD_VOLUME_ID ?= "${MACHINE}"
 # Boot partition size [in KiB] (will be rounded up to IMAGE_ROOTFS_ALIGNMENT)
 BOOT_SPACE ?= "40960"
 
+# Data partition size [in KiB]
+DATA_SPACE ?= "155648"
+
 # Set alignment to 4MB [in KiB]
 IMAGE_ROOTFS_ALIGNMENT = "4096"
 
@@ -50,7 +55,7 @@ IMAGE_DEPENDS_rpi-sdimg = " \
 			dosfstools-native \
 			virtual/kernel:do_deploy \
 			${IMAGE_BOOTLOADER} \
-            bcm2835-bootfiles \
+			bcm2835-bootfiles \
 			"
 
 # SD card image name
@@ -75,7 +80,11 @@ IMAGE_CMD_rpi-sdimg () {
 	# Align partitions
 	BOOT_SPACE_ALIGNED=$(expr ${BOOT_SPACE} + ${IMAGE_ROOTFS_ALIGNMENT} - 1)
 	BOOT_SPACE_ALIGNED=$(expr ${BOOT_SPACE_ALIGNED} - ${BOOT_SPACE_ALIGNED} % ${IMAGE_ROOTFS_ALIGNMENT})
-	SDIMG_SIZE=$(expr ${IMAGE_ROOTFS_ALIGNMENT} + ${BOOT_SPACE_ALIGNED} + $ROOTFS_SIZE)
+
+	ROOT_SPACE_ALIGNED=$(expr ${ROOTFS_SIZE} + ${IMAGE_ROOTFS_ALIGNMENT} - 1)
+	ROOT_SPACE_ALIGNED=$(expr ${ROOT_SPACE_ALIGNED} - ${ROOT_SPACE_ALIGNED} % ${IMAGE_ROOTFS_ALIGNMENT})
+
+	SDIMG_SIZE=$(expr ${IMAGE_ROOTFS_ALIGNMENT} + ${BOOT_SPACE_ALIGNED} + ${ROOT_SPACE_ALIGNED} + ${ROOT_SPACE_ALIGNED} + ${DATA_SPACE})
 
 	echo "Creating filesystem with Boot partition ${BOOT_SPACE_ALIGNED} KiB and RootFS $ROOTFS_SIZE KiB"
 
@@ -87,8 +96,14 @@ IMAGE_CMD_rpi-sdimg () {
 	# Create boot partition and mark it as bootable
 	parted -s ${SDIMG} unit KiB mkpart primary fat32 ${IMAGE_ROOTFS_ALIGNMENT} $(expr ${BOOT_SPACE_ALIGNED} \+ ${IMAGE_ROOTFS_ALIGNMENT})
 	parted -s ${SDIMG} set 1 boot on
-	# Create rootfs partition to the end of disk
-	parted -s ${SDIMG} -- unit KiB mkpart primary ext2 $(expr ${BOOT_SPACE_ALIGNED} \+ ${IMAGE_ROOTFS_ALIGNMENT}) -1s
+	# Create rootfs partition 
+	parted -s ${SDIMG} -- unit KiB mkpart primary ext2 $(expr ${BOOT_SPACE_ALIGNED} \+ ${IMAGE_ROOTFS_ALIGNMENT}) $(expr ${BOOT_SPACE_ALIGNED} \+ ${IMAGE_ROOTFS_ALIGNMENT} \+ ${ROOT_SPACE_ALIGNED})
+	# Create second rootfs partition
+	END_ROOT2=$(expr ${BOOT_SPACE_ALIGNED} \+ ${IMAGE_ROOTFS_ALIGNMENT} \+ ${ROOT_SPACE_ALIGNED} \+ ${ROOT_SPACE_ALIGNED})
+	parted -s ${SDIMG} -- unit KiB mkpart primary ext2 $(expr ${BOOT_SPACE_ALIGNED} \+ ${IMAGE_ROOTFS_ALIGNMENT} \+ ${ROOT_SPACE_ALIGNED}) ${END_ROOT2}
+	# Create data partition to the end of disk
+	parted -s ${SDIMG} -- unit KiB mkpart primary ext2 ${END_ROOT2} -1s
+
 	parted ${SDIMG} print
 
 	# Create a vfat image with boot files
@@ -132,15 +147,24 @@ IMAGE_CMD_rpi-sdimg () {
 	echo "${IMAGE_NAME}-${IMAGEDATESTAMP}" > ${WORKDIR}/image-version-info
 	mcopy -i ${WORKDIR}/boot.img -v ${WORKDIR}//image-version-info ::
 
+    # Create empty data partition
+	DATA_BLOCKS=$(LC_ALL=C parted -s ${SDIMG} unit b print | awk '/ 4 / { print substr($4, 1, length($4 -1)) / 512 /2 }')
+	rm -f ${WORKDIR}/data.img
+	dd if=/dev/zero of=${WORKDIR}/data.img bs=512 count=0 seek=${DATA_BLOCKS}
+	mkfs.ext4 -F ${WORKDIR}/data.img
+
 	# Burn Partitions
 	dd if=${WORKDIR}/boot.img of=${SDIMG} conv=notrunc seek=1 bs=$(expr ${IMAGE_ROOTFS_ALIGNMENT} \* 1024) && sync && sync
 	# If SDIMG_ROOTFS_TYPE is a .xz file use xzcat
 	if echo "${SDIMG_ROOTFS_TYPE}" | egrep -q "*\.xz"
 	then
 		xzcat ${SDIMG_ROOTFS} | dd of=${SDIMG} conv=notrunc seek=1 bs=$(expr 1024 \* ${BOOT_SPACE_ALIGNED} + ${IMAGE_ROOTFS_ALIGNMENT} \* 1024) && sync && sync
+		xzcat ${SDIMG_ROOTFS} | dd of=${SDIMG} conv=notrunc seek=1 bs=$(expr 1024 \* ${BOOT_SPACE_ALIGNED} + ${IMAGE_ROOTFS_ALIGNMENT} \* 1024 + ${ROOT_SPACE_ALIGNED} \* 1024) && sync && sync
 	else
 		dd if=${SDIMG_ROOTFS} of=${SDIMG} conv=notrunc seek=1 bs=$(expr 1024 \* ${BOOT_SPACE_ALIGNED} + ${IMAGE_ROOTFS_ALIGNMENT} \* 1024) && sync && sync
+		dd if=${SDIMG_ROOTFS} of=${SDIMG} conv=notrunc seek=1 bs=$(expr 1024 \* ${BOOT_SPACE_ALIGNED} + ${IMAGE_ROOTFS_ALIGNMENT} \* 1024 + ${ROOT_SPACE_ALIGNED} \* 1024) && sync && sync
 	fi
+    dd if=${WORKDIR}/data.img of=${SDIMG} conv=notrunc seek=1 bs=$(expr 1024 \* ${BOOT_SPACE_ALIGNED} + ${IMAGE_ROOTFS_ALIGNMENT} \* 1024 + ${ROOT_SPACE_ALIGNED} \* 2048) && sync && sync
 
 	# Optionally apply compression
 	case "${SDIMG_COMPRESSION}" in
