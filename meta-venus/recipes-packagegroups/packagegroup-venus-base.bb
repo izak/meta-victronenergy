@@ -65,6 +65,7 @@ RDEPENDS_${PN} += "\
 	linux-firmware-rt2800 \
 	linux-firmware-rt73 \
 	linux-firmware-rtl8192cu \
+	linux-firmware-rtl8188eu \
 	localedef \
 	nano \
 	ncurses-tools \

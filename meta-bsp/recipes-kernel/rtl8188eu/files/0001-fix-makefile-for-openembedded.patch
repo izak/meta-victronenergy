@@ -1,0 +1,15 @@
+diff --git a/Makefile b/Makefile
+index a855405..8f9c9f6 100644
+--- a/Makefile
++++ b/Makefile
+@@ -97,8 +97,8 @@ SUBARCH := $(shell uname -m | sed -e s/i.86/i386/ | sed -e s/ppc/powerpc/ | sed
+ 
+ ARCH ?= $(SUBARCH)
+ CROSS_COMPILE ?=
+-KVER  := $(shell uname -r)
+-KSRC ?= /lib/modules/$(KVER)/build
++KVER  := $(KERNEL_VERSION)
++KSRC := $(KERNEL_PATH)
+ MODDESTDIR := /lib/modules/$(KVER)/kernel/drivers/net/wireless
+ INSTALL_PREFIX :=
+ 
