@@ -11,12 +11,14 @@ SRC_URI += " \
     file://config.txt \
 "
 
-# This revision corresponds to the tag "v2015.07"
+#RDEPENDS_${PN} += "u-boot-env-tools"
+
+# This revision corresponds to the tag "v2016.11-rc3"
 # We use the revision in order to avoid having to fetch it from the
 # repo during parse
-SRCREV = "9dd1d0aa4e086bc8a5eaf19a67825c3323c41c5a"
+SRCREV = "d8bdfc80da39211d95f10d24e79f2e867305f71b"
 
-PV = "v2016.09.11+git${SRCPV}"
+PV = "v2016.11-rc3"
 
 EXTRA_OEMAKE_append = " KCFLAGS=-fgnu89-inline"
 
