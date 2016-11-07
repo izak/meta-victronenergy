@@ -14,3 +14,8 @@ mmcargs=setenv bootargs "console=tty1 console=${console} ${optargs} bcm2709.boar
 loadfdt=fatload mmc ${bootpart} ${fdt_addr_r} ${fdtfile}
 loadimage=ext2load mmc ${kernpart} ${kernel_addr_r} ${bootfile}
 bootcmd=if run loadfdt; then echo Loaded ${fdtfile}; if run loadimage; then run mmcargs; bootz ${kernel_addr_r} - ${fdt_addr_r}; fi; fi;
+
+preboot=usb start
+stderr=serial,lcd
+stdin=serial,usbkbd
+stdout=serial,lcd
