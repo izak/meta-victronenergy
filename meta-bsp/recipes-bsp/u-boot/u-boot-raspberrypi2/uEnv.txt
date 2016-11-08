@@ -4,16 +4,14 @@ bootpart=0:1
 kernpart=0:2
 bootfile=/boot/zImage
 console=ttyAMA0,115200n8
-fdtfile=bcm2709-rpi-2-b.dtb
 kernel_addr_r=0x01000000
-fdt_addr_r=0x02000000
+fdt_addr_r=0x00000100
 mmcroot=/dev/mmcblk0p2 ro
 mmcrootfstype=ext4 rootwait
 optargs=consoleblank=0 dwc_otg.lpm_enable=0 elevator=deadline
 mmcargs=setenv bootargs "console=tty1 console=${console} ${optargs} bcm2709.boardrev=${board_revision} bcm2709.serial=0x${serial#} smsc95xx.macaddr=${ethaddr} root=${mmcroot} rootfstype=${mmcrootfstype}"
-loadfdt=fatload mmc ${bootpart} ${fdt_addr_r} ${fdtfile}
 loadimage=ext2load mmc ${kernpart} ${kernel_addr_r} ${bootfile}
-bootcmd=if run loadfdt; then echo Loaded ${fdtfile}; if run loadimage; then run mmcargs; bootz ${kernel_addr_r} - ${fdt_addr_r}; fi; fi;
+bootcmd=if run loadimage; then run mmcargs; bootz ${kernel_addr_r} - ${fdt_addr_r}; fi;
 
 preboot=usb start
 stderr=serial,lcd
