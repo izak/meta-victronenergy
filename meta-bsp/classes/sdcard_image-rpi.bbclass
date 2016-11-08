@@ -71,10 +71,6 @@ SDIMG = "${DEPLOY_DIR_IMAGE}/${IMAGE_NAME}.rootfs.rpi-sdimg"
 # Additional files and/or directories to be copied into the vfat partition from the IMAGE_ROOTFS.
 FATPAYLOAD ?= ""
 
-IMAGEDATESTAMP = "${@time.strftime('%Y.%m.%d',time.gmtime())}"
-IMAGE_CMD_rpi-sdimg[vardepsexclude] += "IMAGEDATESTAMP"
-IMAGE_CMD_rpi-sdimg[vardepsexclude] += "DATETIME"
-
 IMAGE_CMD_rpi-sdimg () {
 
 	# Align partitions
