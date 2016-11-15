@@ -96,5 +96,6 @@ RDEPENDS_${PN} += "\
 "
 
 RDEPENDS_${PN}_append_raspberrypi2 += "\
-       crda \
+	linux-firmware-rtl8188eu \
+	crda \
 "
