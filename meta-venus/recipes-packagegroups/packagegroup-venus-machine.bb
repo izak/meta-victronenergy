@@ -45,3 +45,8 @@ RDEPENDS_${PN}_append_beaglebone += "\
 	swupdate \
 	swupdate-scripts \
 "
+
+RDEPENDS_${PN}_append_raspberrypi2 += "\
+	swupdate \
+	swupdate-scripts \
+"
