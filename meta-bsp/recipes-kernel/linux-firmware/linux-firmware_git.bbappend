@@ -10,11 +10,14 @@ SRC_URI_append = " \
     file://brcmfmac43430-sdio.bin \
     file://brcmfmac43430-sdio.txt \
     file://LICENSE.broadcom_brcm80211 \
+    file://8192cu.conf \
     "
 
 do_install_append() {
     cp ${WORKDIR}/brcmfmac43430-sdio.* ${D}/lib/firmware/brcm/
     cp ${WORKDIR}/LICENSE.broadcom_brcm80211 ${D}/lib/firmware/
+    install -d ${D}/etc/modprobe.d
+    cp ${WORKDIR}/8192cu.conf ${D}/etc/modprobe.d/8192cu.conf
 }
 
 PACKAGES =+ "${PN}-brcm43430 ${PN}-brcm43430-license"
@@ -25,6 +28,7 @@ FILES_${PN}-brcm43430 = " \
     /lib/firmware/brcm/brcmfmac43430-sdio.bin \
     /lib/firmware/brcm/brcmfmac43430-sdio.txt \
     "
+FILES_${PN}-rtl8192cu += "/etc/modprobe.d/8192cu.conf"
 
 RDEPENDS_${PN}-brcm43430 += "${PN}-brcm43430-license"
 
