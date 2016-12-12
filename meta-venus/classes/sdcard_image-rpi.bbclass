@@ -132,18 +132,6 @@ IMAGE_CMD_rpi-sdimg () {
 	mcopy -i ${WORKDIR}/boot.img -s ${DEPLOY_DIR_IMAGE}/config.txt ::config.txt
 	mcopy -i ${WORKDIR}/boot.img -s ${DEPLOY_DIR_IMAGE}/uboot.env ::uboot.env
 
-	if [ -n ${FATPAYLOAD} ] ; then
-		echo "Copying payload into VFAT"
-		for entry in ${FATPAYLOAD} ; do
-				# add the || true to stop aborting on vfat issues like not supporting .~lock files
-				mcopy -i ${WORKDIR}/boot.img -s -v ${IMAGE_ROOTFS}$entry :: || true
-		done
-	fi
-
-	# Add stamp file
-	echo "${IMAGE_NAME}-${IMAGEDATESTAMP}" > ${WORKDIR}/image-version-info
-	mcopy -i ${WORKDIR}/boot.img -v ${WORKDIR}//image-version-info ::
-
     # Create empty data partition
 	DATA_BLOCKS=$(LC_ALL=C parted -s ${SDIMG} unit b print | awk '/ 4 / { print substr($4, 1, length($4 -1)) / 512 /2 }')
 	rm -f ${WORKDIR}/data.img
@@ -156,10 +144,8 @@ IMAGE_CMD_rpi-sdimg () {
 	if echo "${SDIMG_ROOTFS_TYPE}" | egrep -q "*\.xz"
 	then
 		xzcat ${SDIMG_ROOTFS} | dd of=${SDIMG} conv=notrunc seek=1 bs=$(expr 1024 \* ${BOOT_SPACE_ALIGNED} + ${IMAGE_ROOTFS_ALIGNMENT} \* 1024) && sync && sync
-		xzcat ${SDIMG_ROOTFS} | dd of=${SDIMG} conv=notrunc seek=1 bs=$(expr 1024 \* ${BOOT_SPACE_ALIGNED} + ${IMAGE_ROOTFS_ALIGNMENT} \* 1024 + ${ROOT_SPACE_ALIGNED} \* 1024) && sync && sync
 	else
 		dd if=${SDIMG_ROOTFS} of=${SDIMG} conv=notrunc seek=1 bs=$(expr 1024 \* ${BOOT_SPACE_ALIGNED} + ${IMAGE_ROOTFS_ALIGNMENT} \* 1024) && sync && sync
-		dd if=${SDIMG_ROOTFS} of=${SDIMG} conv=notrunc seek=1 bs=$(expr 1024 \* ${BOOT_SPACE_ALIGNED} + ${IMAGE_ROOTFS_ALIGNMENT} \* 1024 + ${ROOT_SPACE_ALIGNED} \* 1024) && sync && sync
 	fi
     dd if=${WORKDIR}/data.img of=${SDIMG} conv=notrunc seek=1 bs=$(expr 1024 \* ${BOOT_SPACE_ALIGNED} + ${IMAGE_ROOTFS_ALIGNMENT} \* 1024 + ${ROOT_SPACE_ALIGNED} \* 2048) && sync && sync
 
