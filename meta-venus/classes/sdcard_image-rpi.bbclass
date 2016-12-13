@@ -27,15 +27,6 @@ inherit image_types
 # This image depends on the rootfs image
 IMAGE_TYPEDEP_rpi-sdimg = "${SDIMG_ROOTFS_TYPE}"
 
-# Set kernel and boot loader
-IMAGE_BOOTLOADER ?= "u-boot-raspberrypi2"
-
-# Set initramfs extension
-KERNEL_INITRAMFS ?= ""
-
-# Boot partition volume id
-BOOTDD_VOLUME_ID ?= "${MACHINE}"
-
 # Boot partition size [in KiB] (will be rounded up to IMAGE_ROOTFS_ALIGNMENT)
 BOOT_SPACE ?= "40960"
 
@@ -54,7 +45,7 @@ IMAGE_DEPENDS_rpi-sdimg = " \
 			mtools-native \
 			dosfstools-native \
 			virtual/kernel:do_deploy \
-			${IMAGE_BOOTLOADER} \
+			venus-boot-image \
 			bcm2835-bootfiles \
 			"
 
@@ -102,36 +93,6 @@ IMAGE_CMD_rpi-sdimg () {
 
 	parted ${SDIMG} print
 
-	# Create a vfat image with boot files
-	BOOT_BLOCKS=$(LC_ALL=C parted -s ${SDIMG} unit b print | awk '/ 1 / { print substr($4, 1, length($4 -1)) / 512 /2 }')
-	rm -f ${WORKDIR}/boot.img
-	mkfs.vfat -n "${BOOTDD_VOLUME_ID}" -S 512 -C ${WORKDIR}/boot.img $BOOT_BLOCKS
-	mcopy -i ${WORKDIR}/boot.img -s ${DEPLOY_DIR_IMAGE}/bcm2835-bootfiles/* ::/
-	DTS="${@get_dts(d)}"
-	if test -n "${DTS}"; then
-		# Device Tree Overlays are assumed to be suffixed by '-overlay.dtb' string and will be put in a dedicated folder
-		DT_OVERLAYS="${@split_overlays(d, 0)}"
-		DT_ROOT="${@split_overlays(d, 1)}"
-
-		# Copy board device trees to root folder
-		for DTB in ${DT_ROOT}; do
-			DTB_BASE_NAME=`basename ${DTB} .dtb`
-			mcopy -i ${WORKDIR}/boot.img -s ${DEPLOY_DIR_IMAGE}/${KERNEL_IMAGETYPE}-${DTB_BASE_NAME}.dtb ::${DTB_BASE_NAME}.dtb
-		done
-
-		# Copy device tree overlays to dedicated folder
-		mmd -i ${WORKDIR}/boot.img overlays
-		for DTB in ${DT_OVERLAYS}; do
-			DTB_BASE_NAME=`basename ${DTB} .dtb`
-			mcopy -i ${WORKDIR}/boot.img -s ${DEPLOY_DIR_IMAGE}/${KERNEL_IMAGETYPE}-${DTB_BASE_NAME}.dtb ::overlays/${DTB_BASE_NAME}.dtb
-		done
-	fi
-
-	mcopy -i ${WORKDIR}/boot.img -s ${DEPLOY_DIR_IMAGE}/u-boot.bin ::u-boot.bin
-	mcopy -i ${WORKDIR}/boot.img -s ${DEPLOY_DIR_IMAGE}/u-boot-rpi3.bin ::u-boot-rpi3.bin
-	mcopy -i ${WORKDIR}/boot.img -s ${DEPLOY_DIR_IMAGE}/config.txt ::config.txt
-	mcopy -i ${WORKDIR}/boot.img -s ${DEPLOY_DIR_IMAGE}/uboot.env ::uboot.env
-
     # Create empty data partition
 	DATA_BLOCKS=$(LC_ALL=C parted -s ${SDIMG} unit b print | awk '/ 4 / { print substr($4, 1, length($4 -1)) / 512 /2 }')
 	rm -f ${WORKDIR}/data.img
@@ -139,28 +100,9 @@ IMAGE_CMD_rpi-sdimg () {
 	mkfs.ext4 -F ${WORKDIR}/data.img
 
 	# Burn Partitions
-	dd if=${WORKDIR}/boot.img of=${SDIMG} conv=notrunc seek=1 bs=$(expr ${IMAGE_ROOTFS_ALIGNMENT} \* 1024) && sync && sync
-	# If SDIMG_ROOTFS_TYPE is a .xz file use xzcat
-	if echo "${SDIMG_ROOTFS_TYPE}" | egrep -q "*\.xz"
-	then
-		xzcat ${SDIMG_ROOTFS} | dd of=${SDIMG} conv=notrunc seek=1 bs=$(expr 1024 \* ${BOOT_SPACE_ALIGNED} + ${IMAGE_ROOTFS_ALIGNMENT} \* 1024) && sync && sync
-	else
-		dd if=${SDIMG_ROOTFS} of=${SDIMG} conv=notrunc seek=1 bs=$(expr 1024 \* ${BOOT_SPACE_ALIGNED} + ${IMAGE_ROOTFS_ALIGNMENT} \* 1024) && sync && sync
-	fi
-    dd if=${WORKDIR}/data.img of=${SDIMG} conv=notrunc seek=1 bs=$(expr 1024 \* ${BOOT_SPACE_ALIGNED} + ${IMAGE_ROOTFS_ALIGNMENT} \* 1024 + ${ROOT_SPACE_ALIGNED} \* 2048) && sync && sync
-
-	# Optionally apply compression
-	case "${SDIMG_COMPRESSION}" in
-	"gzip")
-		gzip -k9 "${SDIMG}"
-		;;
-	"bzip2")
-		bzip2 -k9 "${SDIMG}"
-		;;
-	"xz")
-		xz -k "${SDIMG}"
-		;;
-	esac
+    zcat ${DEPLOY_DIR_IMAGE}/venus-boot-image-raspberrypi2.vfat.gz | dd of=${SDIMG} conv=notrunc seek=1 bs=$(expr ${IMAGE_ROOTFS_ALIGNMENT} \* 1024)
+    dd if=${SDIMG_ROOTFS} of=${SDIMG} conv=notrunc seek=1 bs=$(expr 1024 \* ${BOOT_SPACE_ALIGNED} + ${IMAGE_ROOTFS_ALIGNMENT} \* 1024)
+    dd if=${WORKDIR}/data.img of=${SDIMG} conv=notrunc seek=1 bs=$(expr 1024 \* ${BOOT_SPACE_ALIGNED} + ${IMAGE_ROOTFS_ALIGNMENT} \* 1024 + ${ROOT_SPACE_ALIGNED} \* 2048)
 }
 
 ROOTFS_POSTPROCESS_COMMAND += " rpi_generate_sysctl_config ; "
@@ -176,15 +118,3 @@ rpi_generate_sysctl_config() {
 		sed -e "/vm.min_free_kbytes/d" -i ${IMAGE_SYSCTL_CONF}
 	echo "" >> ${IMAGE_SYSCTL_CONF} && echo "vm.min_free_kbytes = 8192" >> ${IMAGE_SYSCTL_CONF}
 }
-
-def get_dts(d):
-    return d.getVar("KERNEL_DEVICETREE", True)
-
-def split_overlays(d, out):
-    dts = get_dts(d)
-    if out:
-        overlays = oe.utils.str_filter_out('\S+\-overlay\.dtb$', dts, d)
-    else:
-        overlays = oe.utils.str_filter('\S+\-overlay\.dtb$', dts, d)
-
-    return overlays
