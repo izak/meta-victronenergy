@@ -5,6 +5,7 @@ LIC_FILES_CHKSUM = "file://Licenses/README;md5=a2c678cfd4a4d97135585cad908541c6"
 
 SRC_URI += " \
 	file://0001-build-fw-env-tools-with-cross.patch \
+	file://fw_env.config \
 "
 
 SRC_URI[md5sum] = "58c92bf2c46dc82f1b57817f09ca8bd8"
@@ -31,6 +32,9 @@ do_install () {
 
 	install -d ${D}${libdir}
 	install -m 644 ${S}/tools/env/lib.a ${D}${libdir}/libubootenv.a
+
+	install -d ${D}${sysconfdir}
+	install -m 644 ${WORKDIR}/fw_env.config ${D}${sysconfdir}
 }
 
 do_deploy[noexec] = "1"
