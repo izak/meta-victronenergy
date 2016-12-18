@@ -8,6 +8,9 @@ dirs755 += " /data"
 # mount point for the scratch partition
 dirs755 += "/scratch"
 
+# mount point for u-boot FAT partition
+dirs755 += "/u-boot"
+
 # Replace home dir with symlink to persistent volume
 do_install_append() {
 	if [ -d ${D}/home/root ]; then
