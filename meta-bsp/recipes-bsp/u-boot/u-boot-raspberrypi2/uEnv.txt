@@ -1,17 +1,16 @@
-machid=0x00000c42
 bootdelay=3
-bootpart=0:1
-kernpart=0:2
+bootpart=0:2
 bootfile=/boot/zImage
 console=ttyAMA0,115200n8
 kernel_addr_r=0x01000000
 fdt_addr_r=0x00000100
-mmcroot=/dev/mmcblk0p2 ro
+mmcroot=/dev/mmcblk0p2
 mmcrootfstype=ext4 rootwait
 optargs=consoleblank=0 dwc_otg.lpm_enable=0 elevator=deadline
-mmcargs=setenv bootargs "console=tty1 console=${console} ${optargs} bcm2709.boardrev=${board_revision} bcm2709.serial=0x${serial#} smsc95xx.macaddr=${ethaddr} root=${mmcroot} rootfstype=${mmcrootfstype} quiet"
-loadimage=ext2load mmc ${kernpart} ${kernel_addr_r} ${bootfile}
-bootcmd=if run loadimage; then run mmcargs; bootz ${kernel_addr_r} - ${fdt_addr_r}; fi;
+setroot=if test "${version}" = 2; then setenv bootpart 0:3; setenv mmcroot /dev/mmcblk0p3; fi
+mmcargs=setenv bootargs "console=tty1 console=${console} ${optargs} bcm2709.boardrev=${board_revision} bcm2709.serial=0x${serial#} smsc95xx.macaddr=${ethaddr} root=${mmcroot} ro rootfstype=${mmcrootfstype} quiet"
+loadimage=ext2load mmc ${bootpart} ${kernel_addr_r} ${bootfile}
+bootcmd=run setroot; if run loadimage; then run mmcargs; bootz ${kernel_addr_r} - ${fdt_addr_r}; fi;
 
 preboot=usb start
 stderr=serial,lcd
