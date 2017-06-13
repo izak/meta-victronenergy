@@ -36,6 +36,8 @@ RDEPENDS_${PN}_append_beaglebone += "\
 "
 
 RDEPENDS_${PN}_append_raspberrypi2 += "\
+	bluez5 \
+	bluez5-noinst-tools \
 	swupdate \
 	swupdate-scripts \
 "
