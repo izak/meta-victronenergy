@@ -56,6 +56,7 @@ RDEPENDS_${PN} += "\
 	connman-tools \
 	cronie \
 	curl \
+	custom-rc.d \
 	dbus \
 	dbus-tools \
 	e2fsprogs \
